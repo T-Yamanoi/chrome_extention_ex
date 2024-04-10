@@ -1,44 +1,54 @@
+import getSelectedElement from "/libs/getElement.js";
+
 chrome.runtime.onInstalled.addListener(function(){         // トリガー: 拡張機能インストール時
-  
-    const parent_menu = chrome.contextMenus.create({       // 親メニュー作成
+
+    const parent_menu = chrome.contextMenus.create({ 
         type: "normal",
         id: "parent",
+        contexts: ["all"], 
         title: "メニュー"
     })
 
     chrome.contextMenus.create({
-        id: "red",
+        id: "getSelectedElements",
+        title: "URL/DOM 取得",
+        contexts: ["all"], 
         parentId: parent_menu,
-        title: "RED"
     })
-
     chrome.contextMenus.create({
-        id: "blue",
+        id: "SelectedElementsDone",
+        title: "完了",
+        contexts: ["all"], 
         parentId: parent_menu,
-        title: "BLUE"
-    });
-
-    chrome.contextMenus.create({
-        id: "yellow",
-        parentId: parent_menu,
-        title: "YELLOW"
-    });
+    })
 })
 
-chrome.contextMenus.onClicked.addListener(async item => {  
-    if (!item) {
-        console.error("メニューアイテムが定義されていません");
+chrome.contextMenus.onClicked.addListener(async (info) => {  
+    if (!info) {
+        console.error("メニューアイテムが定義されていません")
         return;
     }
-    console.log(item.menuItemId)
 
     const [tab] = await chrome.tabs.query({active: true, currentWindow: true})
     if (!tab) {
-        console.error("アクティブなタブが見つかりません");
+        console.error("アクティブなタブが見つかりません")
         return;
     }
 
-    const response = await chrome.tabs.sendMessage(tab.id, {action: "changeBackgroundColor", color: item.menuItemId})
+    if (info.menuItemId === "getSelectedElements") {
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: getSelectedElement
+        }, function(results) {
+            const elementsData = results[0].result
+            console.log(elementsData)
+          //   exportToCSV(elementsData)
+        })
+    } else if (info.menuItemId === "SelectedElementsDone") {
+        console.log("一社の情報を保存しました。")
+    }
 
-    console.log(response)
+    // const response = await chrome.tabs.sendMessage(tab.id, {action: "changeBackgroundColor", color: info.menuItemId})
+    // console.log(response)
 });
+
